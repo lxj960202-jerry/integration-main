@@ -4,6 +4,7 @@ import type { DirectionItem, DirectionOutput } from "./types";
 import styles from "./directions-result.module.css";
 
 type DirectionsResultProps = {
+  isLocked?: boolean;
   output: DirectionOutput;
   versionId: string;
   selectedDirectionId?: string | null;
@@ -11,6 +12,7 @@ type DirectionsResultProps = {
 };
 
 export function DirectionsResult({
+  isLocked = false,
   output,
   selectedDirectionId,
   versionId,
@@ -29,6 +31,7 @@ export function DirectionsResult({
         {output.directions.map((direction) => (
           <DirectionCard
             direction={direction}
+            isLocked={isLocked}
             isSelected={selectedDirectionId === direction.id}
             key={direction.id}
             onSelect={() =>
@@ -56,10 +59,12 @@ function BriefItem({ label, value }: { label: string; value: string }) {
 
 function DirectionCard({
   direction,
+  isLocked,
   isSelected,
   onSelect,
 }: {
   direction: DirectionItem;
+  isLocked: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }) {
@@ -99,8 +104,13 @@ function DirectionCard({
       </div>
 
       <div className={styles.actions}>
-        <button className={styles.button} disabled={isSelected} onClick={onSelect} type="button">
-          {isSelected ? "已选择" : "选择方向"}
+        <button
+          className={styles.button}
+          disabled={isSelected || isLocked}
+          onClick={onSelect}
+          type="button"
+        >
+          {isSelected ? "已选择" : isLocked ? "已锁定" : "选择方向"}
         </button>
       </div>
     </article>

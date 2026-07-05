@@ -1,12 +1,30 @@
 import { Button, EmptyState, ErrorState, LoadingState } from "@/components/ui";
+import type { DirectionOutput } from "@/features/directions/types";
 import { IntakeQuestions } from "@/features/intake/intake-questions";
+import type { LogoOutput } from "@/features/logo/types";
+import { DirectionsLogoWorkbench } from "@/features/workbench";
+import type {
+  ConfirmableStageOutput,
+  IPOutput,
+  MaterialOutput,
+  ProposalOutput,
+  ReviewOutput,
+  StageControlSelection,
+  VersionItemSelection,
+  VersionConfirmation,
+  VIOutput,
+  WorkbenchStage,
+  WorkbenchStageSummary,
+} from "@/features/workbench/types";
 import type {
   IntakeAnswer,
   IntakeResult,
   JsonValue,
   ProjectDetailResponse,
+  ProjectStateResponse,
   StageRunDetailResponse,
   StageRunResponse,
+  StageVersionStateResponse,
 } from "@/lib/api/types";
 
 import { BRAND_SPEC_FIELDS } from "./fields";
@@ -16,9 +34,14 @@ type ProjectDetailProps = {
   isLoading: boolean;
   isPolling: boolean;
   isSubmittingAnswers: boolean;
+  isSubmittingDecision: boolean;
   onRefresh: () => void;
+  onConfirmStage: (confirmation: VersionConfirmation) => Promise<void>;
+  onControlStage: (selection: StageControlSelection) => Promise<void>;
+  onSelectVersionItem: (selection: VersionItemSelection) => Promise<void>;
   onSubmitIntakeAnswers: (intakeRunId: string, answers: IntakeAnswer[]) => Promise<void>;
   project: ProjectDetailResponse | null;
+  projectState: ProjectStateResponse | null;
 };
 
 const statusLabels: Record<string, string> = {
@@ -26,7 +49,26 @@ const statusLabels: Record<string, string> = {
   RUNNING: "生成中",
   SUCCEEDED: "已完成",
   FAILED: "失败",
+  WAITING_USER: "等待选择",
 };
+
+const WORKBENCH_STAGES: WorkbenchStage[] = [
+  "DIRECTIONS",
+  "LOGO",
+  "VI",
+  "IP",
+  "MATERIALS",
+  "REVIEW",
+  "PROPOSAL",
+];
+
+const CONFIRMABLE_STAGES: ConfirmableStageOutput["stage"][] = [
+  "VI",
+  "IP",
+  "MATERIALS",
+  "REVIEW",
+  "PROPOSAL",
+];
 
 function isIntakeResult(result: StageRunDetailResponse["result"]): result is IntakeResult {
   return Boolean(
@@ -36,6 +78,258 @@ function isIntakeResult(result: StageRunDetailResponse["result"]): result is Int
       "questions" in result &&
       Array.isArray(result.questions),
   );
+}
+
+function isRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isDirectionOutput(output: Record<string, JsonValue> | undefined): output is DirectionOutput {
+  return Boolean(
+    output &&
+      Array.isArray(output.directions) &&
+      output.directions.length > 0 &&
+      isRecord(output.brief),
+  );
+}
+
+function isLogoOutput(output: Record<string, JsonValue> | undefined): output is LogoOutput {
+  return Boolean(output && Array.isArray(output.concepts) && output.concepts.length > 0);
+}
+
+function isVIOutput(output: Record<string, JsonValue> | undefined): output is VIOutput {
+  return Boolean(
+    output &&
+      Array.isArray(output.palette) &&
+      isRecord(output.typography) &&
+      isRecord(output.logo_rules) &&
+      Array.isArray(output.layouts) &&
+      typeof output.source_logo_asset_id === "string",
+  );
+}
+
+function isIPOutput(output: Record<string, JsonValue> | undefined): output is IPOutput {
+  return Boolean(
+    output &&
+      isRecord(output.character) &&
+      isRecord(output.pose) &&
+      typeof output.image_prompt === "string" &&
+      typeof output.preview_asset_id === "string",
+  );
+}
+
+function isMaterialOutput(output: Record<string, JsonValue> | undefined): output is MaterialOutput {
+  return Boolean(output && Array.isArray(output.scenes) && output.scenes.length > 0);
+}
+
+function isReviewOutput(output: Record<string, JsonValue> | undefined): output is ReviewOutput {
+  return Boolean(
+    output &&
+      typeof output.summary === "string" &&
+      Array.isArray(output.issues) &&
+      (typeof output.pass === "boolean" || typeof output.passed === "boolean"),
+  );
+}
+
+function isProposalOutput(output: Record<string, JsonValue> | undefined): output is ProposalOutput {
+  return Boolean(
+    output &&
+      typeof output.title === "string" &&
+      typeof output.narrative === "string" &&
+      Array.isArray(output.sections) &&
+      Array.isArray(output.asset_refs),
+  );
+}
+
+function latestDecisionFor(
+  projectState: ProjectStateResponse,
+  stage: WorkbenchStage,
+  versionId: string,
+  actions: string[],
+) {
+  return [...projectState.decisions]
+    .filter(
+      (decision) =>
+        decision.stage === stage &&
+        decision.source_version_id === versionId &&
+        actions.includes(decision.action),
+    )
+    .sort(
+      (left, right) =>
+        new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+    )[0];
+}
+
+function latestSelectionFor(
+  projectState: ProjectStateResponse,
+  stage: WorkbenchStage,
+  versionId: string,
+) {
+  return latestDecisionFor(projectState, stage, versionId, ["SELECT_VERSION"])?.selected_item_id;
+}
+
+function latestConfirmationFor(
+  projectState: ProjectStateResponse,
+  stage: WorkbenchStage,
+  versionId: string,
+) {
+  return latestDecisionFor(projectState, stage, versionId, ["CONFIRM_VERSION"]);
+}
+
+function hasIpChoiceDecision(projectState: ProjectStateResponse) {
+  return projectState.decisions.some(
+    (decision) =>
+      decision.stage === "IP" &&
+      (decision.action === "SKIP" || decision.action === "GENERATE"),
+  );
+}
+
+function getStageStatus(
+  projectState: ProjectStateResponse,
+  stage: WorkbenchStage,
+  version: StageVersionStateResponse | undefined,
+): WorkbenchStageSummary["status"] {
+  const run = projectState.stage_runs[stage];
+  const selectedItemId = version ? latestSelectionFor(projectState, stage, version.id) : null;
+  const confirmed = version ? latestConfirmationFor(projectState, stage, version.id) : null;
+
+  if (stage === "IP" && hasIpChoiceDecision(projectState) && !version) {
+    return "CONFIRMED";
+  }
+  if (run?.status === "QUEUED" || run?.status === "RUNNING") {
+    return "GENERATING";
+  }
+  if (stage === "IP" && run?.status === "WAITING_USER" && !hasIpChoiceDecision(projectState)) {
+    return "AWAITING_DECISION";
+  }
+  if (version?.status === "STALE") {
+    return "STALE";
+  }
+  if (selectedItemId || confirmed) {
+    return "CONFIRMED";
+  }
+  if (stage === "IP" && run?.status === "WAITING_USER") {
+    return "AWAITING_DECISION";
+  }
+  if (version?.status === "GENERATED" || run?.status === "WAITING_USER") {
+    return "AWAITING_DECISION";
+  }
+  return "LOCKED";
+}
+
+function buildWorkbenchStages(projectState: ProjectStateResponse): WorkbenchStageSummary[] {
+  return WORKBENCH_STAGES.map((stage) => {
+    const version = projectState.versions[stage];
+    return {
+      stage,
+      status: getStageStatus(projectState, stage, version),
+      version_id: version?.id ?? null,
+      selected_item_id: version ? latestSelectionFor(projectState, stage, version.id) ?? null : null,
+    };
+  });
+}
+
+function buildConfirmableStageOutput(
+  projectState: ProjectStateResponse,
+  stage: ConfirmableStageOutput["stage"],
+): ConfirmableStageOutput | null {
+  const version = projectState.versions[stage];
+  if (!version) {
+    return null;
+  }
+
+  const confirmed = Boolean(latestConfirmationFor(projectState, stage, version.id));
+  const base = {
+    version_id: version.id,
+    confirmed,
+    status: version.status,
+  };
+
+  if (stage === "VI" && isVIOutput(version.output)) {
+    return {
+      ...base,
+      stage,
+      output: version.output,
+    };
+  }
+  if (stage === "IP" && isIPOutput(version.output)) {
+    return {
+      ...base,
+      stage,
+      output: version.output,
+    };
+  }
+  if (stage === "MATERIALS" && isMaterialOutput(version.output)) {
+    return {
+      ...base,
+      stage,
+      output: version.output,
+    };
+  }
+  if (stage === "REVIEW" && isReviewOutput(version.output)) {
+    return {
+      ...base,
+      stage,
+      output: version.output,
+    };
+  }
+  if (stage === "PROPOSAL" && isProposalOutput(version.output)) {
+    return {
+      ...base,
+      stage,
+      output: version.output,
+    };
+  }
+
+  return null;
+}
+
+function buildWorkbenchProps(projectState: ProjectStateResponse | null) {
+  if (!projectState) {
+    return null;
+  }
+
+  const directionsVersion = projectState.versions.DIRECTIONS;
+  const logoVersion = projectState.versions.LOGO;
+  const directionsOutput = isDirectionOutput(directionsVersion?.output)
+    ? directionsVersion.output
+    : null;
+  const logoOutput = isLogoOutput(logoVersion?.output) ? logoVersion.output : null;
+  const confirmableOutputs = CONFIRMABLE_STAGES.map((stage) =>
+    buildConfirmableStageOutput(projectState, stage),
+  ).filter((item): item is ConfirmableStageOutput => item !== null);
+  const ipChoicePending =
+    projectState.stage_runs.IP?.status === "WAITING_USER" && !hasIpChoiceDecision(projectState);
+
+  if (!directionsOutput && !logoOutput && confirmableOutputs.length === 0 && !ipChoicePending) {
+    return null;
+  }
+
+  return {
+    directions:
+      directionsVersion && directionsOutput
+        ? {
+            output: directionsOutput,
+            version_id: directionsVersion.id,
+            selected_item_id: latestSelectionFor(
+              projectState,
+              "DIRECTIONS",
+              directionsVersion.id,
+            ),
+          }
+        : null,
+    logo:
+      logoVersion && logoOutput
+        ? {
+            output: logoOutput,
+            version_id: logoVersion.id,
+            selected_item_id: latestSelectionFor(projectState, "LOGO", logoVersion.id),
+          }
+        : null,
+    confirmableOutputs,
+    ipChoicePending,
+    stages: buildWorkbenchStages(projectState),
+  };
 }
 
 function formatJsonValue(value: JsonValue | undefined) {
@@ -121,7 +415,17 @@ function ActiveRunPanel({
       <div className="success-panel">
         <span className="step-pill">Intake 完成</span>
         <h2>品牌信息已满足生成条件</h2>
-        <p>当前 Intake Run 已成功完成。</p>
+        <p>当前 Intake Run 已成功完成，可以继续生成品牌方向。</p>
+        <div className="inline-actions">
+          <Button
+            disabled={isSubmittingAnswers}
+            onClick={() => {
+              void onSubmitIntakeAnswers(activeRun.id, []);
+            }}
+          >
+            {isSubmittingAnswers ? "正在继续" : "继续生成方向"}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -133,6 +437,16 @@ function ActiveRunPanel({
         <h2>品牌方向已生成</h2>
         <p>结果版本：{activeRun.result_version_id ?? "后端未返回版本 ID"}</p>
         <p>下一步可以进入品牌方向选择。</p>
+      </div>
+    );
+  }
+
+  if (activeRun.status === "WAITING_USER") {
+    return (
+      <div className="success-panel">
+        <span className="step-pill">{activeRun.stage}</span>
+        <h2>等待人工选择</h2>
+        <p>当前阶段已生成到人工决策点，请在工作台中继续选择或确认。</p>
       </div>
     );
   }
@@ -151,9 +465,14 @@ export function ProjectDetail({
   isLoading,
   isPolling,
   isSubmittingAnswers,
+  isSubmittingDecision,
+  onConfirmStage,
+  onControlStage,
   onRefresh,
+  onSelectVersionItem,
   onSubmitIntakeAnswers,
   project,
+  projectState,
 }: ProjectDetailProps) {
   if (isLoading) {
     return <LoadingState title="正在读取项目详情" />;
@@ -162,6 +481,8 @@ export function ProjectDetail({
   if (!project) {
     return <EmptyState title="请选择项目">左侧选择已有项目，或创建一个新项目。</EmptyState>;
   }
+
+  const workbench = buildWorkbenchProps(projectState);
 
   return (
     <div className="detail-layout">
@@ -183,6 +504,7 @@ export function ProjectDetail({
           isSubmittingAnswers={isSubmittingAnswers}
           onSubmitIntakeAnswers={onSubmitIntakeAnswers}
         />
+
       </section>
 
       <aside className="detail-side">
@@ -203,6 +525,27 @@ export function ProjectDetail({
           <StageRunTimeline runs={project.stage_runs} />
         </section>
       </aside>
+
+      {workbench ? (
+        <section className="workbench-section">
+          <header className="section-heading">
+            <span className="step-pill">Workbench</span>
+            <h2>品牌生成工作台</h2>
+            {isSubmittingDecision ? <em>正在提交选择</em> : null}
+          </header>
+          <DirectionsLogoWorkbench
+            confirmableOutputs={workbench.confirmableOutputs}
+            directions={workbench.directions}
+            ipChoicePending={workbench.ipChoicePending}
+            isSubmittingDecision={isSubmittingDecision}
+            logo={workbench.logo}
+            onConfirm={onConfirmStage}
+            onControlStage={onControlStage}
+            onSelect={onSelectVersionItem}
+            stages={workbench.stages}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

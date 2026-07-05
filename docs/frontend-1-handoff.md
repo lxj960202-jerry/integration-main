@@ -149,6 +149,14 @@ Content-Type: application/json
 }
 ```
 
+如果 Intake 已经 `ready=true` 且没有补问，前端可以提交：
+
+```json
+{
+  "answers": []
+}
+```
+
 成功返回 HTTP 202，得到新的 Directions Run：
 
 ```json

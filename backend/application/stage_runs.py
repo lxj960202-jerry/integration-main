@@ -699,6 +699,10 @@ async def create_intake_resume_run(
         raise StageResumeNotFoundError("Intake version not found")
     if source_version.status != "GENERATED":
         raise StageResumeConflictError("Only a generated Intake version can accept answers")
+    if not resume_payload.answers:
+        intake_output = IntakeOutput.model_validate(source_version.output_json)
+        if not intake_output.ready:
+            raise StageResumeConflictError("Intake answers are required before Directions")
 
     payload_json = resume_payload.model_dump(mode="json")
     digest = hashlib.sha256(

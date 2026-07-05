@@ -339,14 +339,50 @@ button:disabled {
 .form-field,
 .success-panel,
 .intake-panel,
-.section-header {
+.section-header,
+.section-heading,
+.workbench-section {
   display: grid;
 }
 
 .project-form,
 .question-form,
-.intake-panel {
+.intake-panel,
+.workbench-section {
   gap: 18px;
+}
+
+.workbench-section {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #dde2e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.section-heading {
+  gap: 6px;
+  align-items: start;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.section-heading em {
+  color: #2154d1;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .form-grid {

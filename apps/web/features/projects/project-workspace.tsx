@@ -4,6 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Dialog, ErrorState, LoadingState } from "@/components/ui";
+import type {
+  StageControlSelection,
+  VersionConfirmation,
+  VersionItemSelection,
+} from "@/features/workbench/types";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { pollStageRun } from "@/lib/api/polling";
 import type {
@@ -11,7 +16,9 @@ import type {
   ProjectCreateRequest,
   ProjectDetailResponse,
   ProjectResponse,
+  ProjectStateResponse,
   ResumeStageRunResponse,
+  StageRunStateResponse,
   StageRunDetailResponse,
   StageRunResponse,
 } from "@/lib/api/types";
@@ -45,7 +52,9 @@ function pickLatestRun(runs: StageRunResponse[]) {
     .sort((left, right) => right.rank - left.rank || right.index - left.index)[0]?.run;
 }
 
-function toRunDetail(run: StageRunResponse | ResumeStageRunResponse): StageRunDetailResponse {
+function toRunDetail(
+  run: StageRunResponse | ResumeStageRunResponse | StageRunStateResponse,
+): StageRunDetailResponse {
   return {
     id: run.id,
     project_id: run.project_id,
@@ -81,9 +90,11 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
   const [pollingRunId, setPollingRunId] = useState<string | null>(null);
   const [projectDetail, setProjectDetail] = useState<ProjectDetailResponse | null>(null);
+  const [projectState, setProjectState] = useState<ProjectStateResponse | null>(null);
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     initialProjectId ?? null,
@@ -99,13 +110,17 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
     setIsLoadingDetail(true);
     setErrorMessage(null);
     try {
-      const detail = await apiClient.getProject(projectId);
+      const [detail, state] = await Promise.all([
+        apiClient.getProject(projectId),
+        apiClient.getProjectState(projectId),
+      ]);
       setProjectDetail(detail);
+      setProjectState(state);
       const latestRun = pickLatestRun(detail.stage_runs);
       if (!latestRun) {
         setActiveRun(null);
         setPollingRunId(null);
-        return;
+        return state;
       }
 
       const runDetail = await apiClient.getStageRun(latestRun.id);
@@ -115,11 +130,14 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
       } else {
         setPollingRunId(null);
       }
+      return state;
     } catch (error) {
       setActiveRun(null);
       setErrorMessage(getErrorMessage(error));
       setPollingRunId(null);
       setProjectDetail(null);
+      setProjectState(null);
+      return null;
     } finally {
       setIsLoadingDetail(false);
     }
@@ -213,6 +231,7 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
       setProjects((current) => sortProjects([created.project, ...current]));
       setSelectedProjectId(created.project.id);
       setActiveRun(toRunDetail(created.stage_run));
+      setProjectState(null);
       setPollingRunId(created.stage_run.id);
       setIsCreateOpen(false);
       router.push(`/projects/${created.project.id}`);
@@ -234,6 +253,102 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsSubmittingAnswers(false);
+    }
+  }
+
+  async function handleSelectVersionItem(selection: VersionItemSelection) {
+    if (!selectedProjectId || isSubmittingDecision) {
+      return;
+    }
+
+    setIsSubmittingDecision(true);
+    setErrorMessage(null);
+    try {
+      const response = await apiClient.createStageDecision(
+        selectedProjectId,
+        selection.stage.toLowerCase(),
+        {
+          action: "SELECT_VERSION",
+          version_id: selection.version_id,
+          selected_item_id: selection.item_id,
+        },
+      );
+      setActiveRun(toRunDetail(response.stage_run));
+      if (RUNNING_STATUSES.has(response.stage_run.status)) {
+        setPollingRunId(response.stage_run.id);
+      } else {
+        setPollingRunId(null);
+      }
+      void loadProjectDetail(selectedProjectId);
+      void loadProjects();
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  }
+
+  async function handleConfirmStage(confirmation: VersionConfirmation) {
+    if (!selectedProjectId || isSubmittingDecision) {
+      return;
+    }
+
+    setIsSubmittingDecision(true);
+    setErrorMessage(null);
+    try {
+      const response = await apiClient.createStageDecision(
+        selectedProjectId,
+        confirmation.stage.toLowerCase(),
+        {
+          action: "CONFIRM_VERSION",
+          confirmed: true,
+          version_id: confirmation.version_id,
+        },
+      );
+      setActiveRun(toRunDetail(response.stage_run));
+      if (RUNNING_STATUSES.has(response.stage_run.status)) {
+        setPollingRunId(response.stage_run.id);
+      } else {
+        setPollingRunId(null);
+      }
+      void loadProjectDetail(selectedProjectId);
+      void loadProjects();
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  }
+
+  async function handleControlStage(selection: StageControlSelection) {
+    if (!selectedProjectId || isSubmittingDecision) {
+      return;
+    }
+
+    setIsSubmittingDecision(true);
+    setErrorMessage(null);
+    try {
+      const response = await apiClient.requestStageControl(
+        selectedProjectId,
+        selection.stage.toLowerCase(),
+        selection.action,
+        selection.reason ? { reason: selection.reason } : undefined,
+      );
+      const nextState = await loadProjectDetail(selectedProjectId);
+      const nextRun = nextState?.stage_runs[response.stage];
+      if (nextRun) {
+        setActiveRun(toRunDetail(nextRun));
+        if (RUNNING_STATUSES.has(nextRun.status)) {
+          setPollingRunId(nextRun.id);
+        } else {
+          setPollingRunId(null);
+        }
+      }
+      void loadProjects();
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmittingDecision(false);
     }
   }
 
@@ -296,9 +411,14 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
           isLoading={isLoadingDetail}
           isPolling={isPolling}
           isSubmittingAnswers={isSubmittingAnswers}
+          isSubmittingDecision={isSubmittingDecision}
+          onConfirmStage={handleConfirmStage}
+          onControlStage={handleControlStage}
           onRefresh={handleRefresh}
+          onSelectVersionItem={handleSelectVersionItem}
           onSubmitIntakeAnswers={handleSubmitIntakeAnswers}
           project={projectDetail}
+          projectState={projectState}
         />
       </section>
 

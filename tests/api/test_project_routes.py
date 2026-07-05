@@ -235,6 +235,8 @@ async def seed_ip_choice_project(
 
 async def seed_succeeded_intake_project(
     session_factory: async_sessionmaker[AsyncSession],
+    *,
+    ready: bool = False,
 ) -> SeededIntakeProject:
     async with session_factory() as session:
         project, intake_run, _ = await create_project(
@@ -256,24 +258,35 @@ async def seed_succeeded_intake_project(
             version_no=1,
             schema_version=1,
             input_refs_json={},
-            output_json={
-                "schema_version": 1,
-                "ready": False,
-                "questions": [
-                    {
-                        "id": "q-industry",
-                        "field_path": "industry",
-                        "prompt": "请补充行业。",
-                        "reason": "用于生成品牌方向。",
-                        "required": True,
-                        "answer_type": "TEXT",
-                        "options": [],
-                    }
-                ],
-                "brand_spec_patch": {},
-                "suggestions": [],
-                "conflicts": [],
-            },
+            output_json=(
+                {
+                    "schema_version": 1,
+                    "ready": True,
+                    "questions": [],
+                    "brand_spec_patch": {},
+                    "suggestions": [],
+                    "conflicts": [],
+                }
+                if ready
+                else {
+                    "schema_version": 1,
+                    "ready": False,
+                    "questions": [
+                        {
+                            "id": "q-industry",
+                            "field_path": "industry",
+                            "prompt": "请补充行业。",
+                            "reason": "用于生成品牌方向。",
+                            "required": True,
+                            "answer_type": "TEXT",
+                            "options": [],
+                        }
+                    ],
+                    "brand_spec_patch": {},
+                    "suggestions": [],
+                    "conflicts": [],
+                }
+            ),
             status="GENERATED",
         )
         session.add(intake_version)
@@ -1735,6 +1748,46 @@ def test_intake_answers_dispatches_directions_run(api_client, monkeypatch) -> No
     assert payload["stage"] == "DIRECTIONS"
     assert payload["parent_stage_run_id"] == seeded.intake_run_id
     assert dispatched_stage_run_ids == [payload["id"]]
+
+
+def test_ready_intake_can_continue_to_directions_without_answers(api_client, monkeypatch) -> None:
+    client, session_factory = api_client
+    seeded = asyncio.run(seed_succeeded_intake_project(session_factory, ready=True))
+    dispatched_stage_run_ids: list[str] = []
+
+    from apps.api.app import tasks
+
+    monkeypatch.setattr(tasks.execute_agent_stage, "delay", dispatched_stage_run_ids.append)
+
+    response = client.post(
+        f"/api/v1/stage-runs/{seeded.intake_run_id}/intake-answers",
+        json={"answers": []},
+    )
+
+    assert response.status_code == 202
+    payload = response.json()
+    assert payload["stage"] == "DIRECTIONS"
+    assert payload["parent_stage_run_id"] == seeded.intake_run_id
+    assert dispatched_stage_run_ids == [payload["id"]]
+
+
+def test_non_ready_intake_rejects_empty_answers(api_client, monkeypatch) -> None:
+    client, session_factory = api_client
+    seeded = asyncio.run(seed_succeeded_intake_project(session_factory))
+    dispatched_stage_run_ids: list[str] = []
+
+    from apps.api.app import tasks
+
+    monkeypatch.setattr(tasks.execute_agent_stage, "delay", dispatched_stage_run_ids.append)
+
+    response = client.post(
+        f"/api/v1/stage-runs/{seeded.intake_run_id}/intake-answers",
+        json={"answers": []},
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Intake answers are required before Directions"}
+    assert dispatched_stage_run_ids == []
 
 
 def test_intake_answers_missing_stage_run_returns_404(api_client) -> None:

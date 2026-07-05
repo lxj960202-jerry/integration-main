@@ -4,7 +4,13 @@ import type {
   ProjectCreateResponse,
   ProjectDetailResponse,
   ProjectResponse,
+  ProjectStateResponse,
   ResumeStageRunResponse,
+  StageDecisionRequest,
+  StageDecisionResponse,
+  StageControlAction,
+  StageControlRequest,
+  StageControlResponse,
   StageRunDetailResponse,
 } from "./types";
 
@@ -85,8 +91,31 @@ export const apiClient = {
     return requestJson<ProjectDetailResponse>(`/projects/${projectId}`);
   },
 
+  getProjectState(projectId: string) {
+    return requestJson<ProjectStateResponse>(`/projects/${projectId}/state`);
+  },
+
   getStageRun(stageRunId: string) {
     return requestJson<StageRunDetailResponse>(`/stage-runs/${stageRunId}`);
+  },
+
+  createStageDecision(projectId: string, stageKey: string, payload: StageDecisionRequest) {
+    return requestJson<StageDecisionResponse>(`/projects/${projectId}/stages/${stageKey}/decisions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  requestStageControl(
+    projectId: string,
+    stageKey: string,
+    action: Lowercase<StageControlAction>,
+    payload?: StageControlRequest,
+  ) {
+    return requestJson<StageControlResponse>(`/projects/${projectId}/stages/${stageKey}/${action}`, {
+      method: "POST",
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
   },
 
   submitIntakeAnswers(stageRunId: string, payload: IntakeAnswersRequest) {

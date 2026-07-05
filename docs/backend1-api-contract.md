@@ -465,6 +465,14 @@ Content-Disposition: attachment; filename="proposal-{project_id}.zip"
 }
 ```
 
+如果 Intake 结果已是 `ready=true` 且不需要补问，可以提交空数组继续排队 Directions：
+
+```json
+{
+  "answers": []
+}
+```
+
 成功：`202`
 
 返回新建或已存在的 `DIRECTIONS` StageRun。
@@ -477,12 +485,14 @@ Content-Disposition: attachment; filename="proposal-{project_id}.zip"
 幂等规则：
 
 - 同一个 Intake StageRun 和完全相同的 answers 重复提交，返回原 `DIRECTIONS` StageRun，不重复派发 worker。
+- `ready=false` 时不允许空 answers，必须提交补问答案。
 
 错误语义：
 
 - `404`：StageRun 不存在或不属于当前 workspace。
 - `409`：项目已是 `COMPLETED`，不再接受 Intake answers。
 - `409`：StageRun 不是已成功的 `INTAKE`、Intake 没有可 resume 的结果，或 Intake 版本已是 `STALE`。
+- `409`：Intake 尚未 ready 且请求没有提供任何 answers。
 
 ### POST `/api/v1/stage-runs/{stage_run_id}/direction-selection`
 

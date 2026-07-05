@@ -1,7 +1,7 @@
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-export type StageRunStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+export type StageRunStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "WAITING_USER";
 
 export type StageName =
   | "INTAKE"
@@ -67,6 +67,49 @@ export type ProjectDetailResponse = ProjectResponse & {
   stage_runs: StageRunResponse[];
 };
 
+export type StageRunStateResponse = StageRunResponse & {
+  parent_stage_run_id: string | null;
+  workflow_thread_id: string;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StageVersionStateResponse = {
+  id: string;
+  project_id: string;
+  stage_run_id: string;
+  stage: StageName | string;
+  version_no: number;
+  schema_version: number;
+  input_refs: Record<string, JsonValue>;
+  output: Record<string, JsonValue>;
+  status: "GENERATED" | "STALE" | string;
+  created_at: string;
+};
+
+export type DecisionStateResponse = {
+  id: string;
+  project_id: string;
+  stage: StageName | string;
+  action: "SELECT_VERSION" | "CONFIRM_VERSION" | "REDO" | "SKIP" | "GENERATE" | string;
+  source_version_id: string;
+  selected_item_id: string | null;
+  resulting_stage_run_id: string;
+  created_by: string;
+  payload: Record<string, JsonValue>;
+  created_at: string;
+};
+
+export type ProjectStateResponse = {
+  project: ProjectResponse;
+  brand_spec: Record<string, JsonValue>;
+  current_stage: StageName | string;
+  stage_runs: Record<string, StageRunStateResponse>;
+  versions: Record<string, StageVersionStateResponse>;
+  decisions: DecisionStateResponse[];
+};
+
 export type IntakeQuestion = {
   id: string;
   field_path: string;
@@ -112,6 +155,20 @@ export type DirectionsResult = {
     id: string;
     name: string;
     concept: string;
+    keywords?: string[];
+    palette?: Array<{
+      name: string;
+      hex: string;
+      usage: string;
+    }>;
+    typography?: {
+      heading_style: string;
+      body_style: string;
+    };
+    composition?: string;
+    rationale?: string;
+    risks?: string[];
+    image_prompt?: string;
     preview_asset_id: string;
   }>;
 };
@@ -137,6 +194,32 @@ export type ResumeStageRunResponse = {
   project_id: string;
   stage: StageName | string;
   status: StageRunStatus;
+};
+
+export type StageDecisionRequest = {
+  version_id: string;
+  selected_item_id?: string;
+  confirmed?: true;
+  action?: "SELECT_VERSION" | "CONFIRM_VERSION";
+};
+
+export type StageDecisionResponse = {
+  decision: DecisionStateResponse;
+  stage_run: StageRunStateResponse;
+};
+
+export type StageControlAction = "REDO" | "SKIP" | "GENERATE";
+
+export type StageControlRequest = {
+  source_version_id?: string;
+  reason?: string;
+};
+
+export type StageControlResponse = {
+  project_id: string;
+  stage: StageName | string;
+  action: StageControlAction;
+  status: StageRunStatus | string;
 };
 
 export type ApiProblem = {

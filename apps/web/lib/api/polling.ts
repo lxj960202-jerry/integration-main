@@ -7,7 +7,7 @@ type PollOptions = {
   onUpdate?: (run: StageRunDetailResponse) => void;
 };
 
-const TERMINAL_STATUSES = new Set(["SUCCEEDED", "FAILED"]);
+const TERMINAL_STATUSES = new Set(["SUCCEEDED", "FAILED", "WAITING_USER"]);
 
 function wait(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -42,4 +42,3 @@ export async function pollStageRun(
     await wait(intervalMs, signal);
   }
 }
-

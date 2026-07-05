@@ -72,4 +72,4 @@ class IntakeAnswer(ContractModel):
 
 
 class IntakeResumePayload(ContractModel):
-    answers: list[IntakeAnswer] = Field(min_length=1, max_length=10)
+    answers: list[IntakeAnswer] = Field(default_factory=list, max_length=10)

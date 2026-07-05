@@ -5,6 +5,7 @@ import styles from "./logo-result.module.css";
 
 type LogoResultProps = {
   assetUrls?: Record<string, string>;
+  isLocked?: boolean;
   output: LogoOutput;
   selectedLogoId?: string | null;
   versionId: string;
@@ -13,6 +14,7 @@ type LogoResultProps = {
 
 export function LogoResult({
   assetUrls = {},
+  isLocked = false,
   output,
   selectedLogoId,
   versionId,
@@ -25,6 +27,7 @@ export function LogoResult({
           <LogoCard
             assetUrl={assetUrls[concept.preview_asset_id]}
             concept={concept}
+            isLocked={isLocked}
             isSelected={selectedLogoId === concept.id}
             key={concept.id}
             onSelect={() =>
@@ -44,11 +47,13 @@ export function LogoResult({
 function LogoCard({
   assetUrl,
   concept,
+  isLocked,
   isSelected,
   onSelect,
 }: {
   assetUrl?: string;
   concept: LogoConcept;
+  isLocked: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }) {
@@ -74,8 +79,13 @@ function LogoCard({
       </div>
 
       <div className={styles.actions}>
-        <button className={styles.button} disabled={isSelected} onClick={onSelect} type="button">
-          {isSelected ? "已选择" : "选择 Logo"}
+        <button
+          className={styles.button}
+          disabled={isSelected || isLocked}
+          onClick={onSelect}
+          type="button"
+        >
+          {isSelected ? "已选择" : isLocked ? "已锁定" : "选择 Logo"}
         </button>
       </div>
     </article>
