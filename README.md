@@ -2,7 +2,7 @@
 
 品牌 Agent 项目的共同开发仓库。当前目标是在约 7 天内先跑通完整逻辑，默认使用假 AI，不追求生成和页面效果。
 
-根目录原有的 `index.html` 是视觉原型，继续保留。正式网页代码放在 `apps/web/`。
+原有视觉原型保存在 `prototypes/legacy/index.html`。正式网页代码放在 `apps/web/`。
 
 当前 2 名前端、3 名后端的职责和第一轮任务见 [`docs/team-plan.md`](docs/team-plan.md)。
 
@@ -109,7 +109,7 @@ infra/docker/        Web/API 镜像
 infra/nginx/         统一入口
 tests/               后端和流程测试
 compose.yaml         一键启动全部服务
-index.html           原始视觉原型
+prototypes/legacy/  原始视觉原型
 ```
 
 ## 环境出现问题时

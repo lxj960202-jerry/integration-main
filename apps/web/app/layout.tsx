@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Brand Agent Studio",
-  description: "Brand Agent Studio shared development environment",
+  description: "品牌生成工作台",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="zh-CN">
       <body>{children}</body>

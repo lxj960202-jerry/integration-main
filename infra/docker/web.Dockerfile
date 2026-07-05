@@ -11,4 +11,4 @@ RUN npm ci
 COPY apps/web ./apps/web
 COPY contracts ./contracts
 
-CMD ["npm", "run", "dev", "--workspace", "@aline/web", "--", "--hostname", "0.0.0.0"]
+CMD ["npm", "run", "dev", "--workspace", "@brand-studio/web", "--", "--hostname", "0.0.0.0"]
