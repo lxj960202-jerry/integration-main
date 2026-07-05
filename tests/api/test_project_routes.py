@@ -2062,6 +2062,29 @@ def test_stage_redo_requires_source_version(api_client) -> None:
     assert response.json() == {"detail": "REDO requires source_version_id"}
 
 
+def test_stage_redo_rejects_stale_source_version(api_client, monkeypatch) -> None:
+    client, session_factory = api_client
+    seeded = asyncio.run(seed_directions_project(session_factory))
+    asyncio.run(mark_stage_version_stale(session_factory, version_id=seeded.directions_version_id))
+    dispatched_stage_run_ids: list[str] = []
+
+    from apps.api.app import tasks
+
+    monkeypatch.setattr(tasks.execute_agent_stage, "delay", dispatched_stage_run_ids.append)
+
+    response = client.post(
+        f"/api/v1/projects/{seeded.project_id}/stages/directions/redo",
+        json={
+            "source_version_id": seeded.directions_version_id,
+            "reason": "try another direction",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Only a generated Stage version can be redone"}
+    assert dispatched_stage_run_ids == []
+
+
 @pytest.mark.parametrize(
     ("stage_key", "stage"),
     [

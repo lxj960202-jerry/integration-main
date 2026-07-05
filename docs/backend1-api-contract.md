@@ -423,6 +423,7 @@ Content-Disposition: attachment; filename="proposal-{project_id}.zip"
 - 如果传入 `source_version_id`，会校验该版本存在、属于当前项目、且阶段与路径 `stage_key` 一致。
 - `POST /api/v1/projects/{project_id}/stages/intake/redo` 必须传 `source_version_id`；成功后创建新的 `INTAKE` StageRun，记录 `Decision(stage=INTAKE, action=REDO)`，将旧 Intake 及下游版本标记为 `STALE`，并派发 worker。
 - `POST /api/v1/projects/{project_id}/stages/directions/redo` 必须传 `source_version_id`；成功后创建新的 `DIRECTIONS` StageRun，记录 `Decision(stage=DIRECTIONS, action=REDO)`，将旧 Directions 及下游版本标记为 `STALE`，并派发 worker。
+- 首次 `redo` 要求 `source_version_id` 对应 StageVersion 仍为 `GENERATED`；如果同一源版本已有 `REDO` Decision，重复请求会按幂等返回原 StageRun。
 - `POST /api/v1/projects/{project_id}/stages/ip/skip` 不接受 `source_version_id`；它会查找当前项目最新的 `IP / WAITING_USER` StageRun。
 - `ip/skip` 成功后创建 `MATERIALS` StageRun，记录 `Decision(stage=IP, action=SKIP)`，`source_version_id` 指向触发 IP 选择点的 VI 版本，并派发 worker。
 - `POST /api/v1/projects/{project_id}/stages/ip/generate` 不接受 `source_version_id`；它会查找当前项目最新的 `IP / WAITING_USER` StageRun。
@@ -440,7 +441,7 @@ Content-Disposition: attachment; filename="proposal-{project_id}.zip"
 - `422`：stage key 非法。
 - `409`：传入的 `source_version_id` 阶段与路径阶段不一致。
 - `409`：项目已是 `COMPLETED`，不再接受 stage control 写操作。
-- `409`：`redo` 未传 `source_version_id`，或当前 stage 尚不支持真实 redo。
+- `409`：`redo` 未传 `source_version_id`，源版本不是 `GENERATED`，或当前 stage 尚不支持真实 redo。
 - `409`：`ip/skip` 没有找到等待中的 IP 选择点、传入了 `source_version_id`，或源 VI 版本已是 `STALE`。
 - `409`：`ip/generate` 没有找到等待中的 IP 选择点、传入了 `source_version_id`，或源 VI 版本已是 `STALE`。
 - `409`：当前 worker milestone 暂不支持该 stage/action。
