@@ -31,8 +31,8 @@
 ## 第一次启动
 
 ```bash
-git clone https://github.com/xiaoyangqiqi7777777/aline-brand-workbench.git
-cd aline-brand-workbench
+git clone https://github.com/lxj960202-jerry/integration-main.git
+cd integration-main
 cp .env.example .env
 docker compose up --build
 ```
