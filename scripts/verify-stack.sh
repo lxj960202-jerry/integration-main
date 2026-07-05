@@ -48,7 +48,7 @@ env_value() {
 
 GATEWAY_PORT="$(env_value GATEWAY_PORT 8080)"
 WEB_PORT="$(env_value WEB_PORT 3000)"
-API_PORT="$(env_value API_PORT 8000)"
+API_PORT="$(env_value API_EXPOSE_PORT "$(env_value API_PORT 8000)")"
 MINIO_API_PORT="$(env_value MINIO_API_PORT 9000)"
 MINIO_CONSOLE_PORT="$(env_value MINIO_CONSOLE_PORT 9001)"
 
