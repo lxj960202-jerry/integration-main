@@ -63,8 +63,8 @@ class S3ArtifactStorage:
     ) -> S3ArtifactStorage:
         return cls(
             endpoint_url=settings.s3_endpoint_url,
-            access_key=settings.s3_access_key,
-            secret_key=settings.s3_secret_key,
+            access_key=settings.s3_access_key_id,
+            secret_key=settings.s3_secret_access_key,
             region_name=settings.s3_region,
             default_ttl_seconds=default_ttl_seconds,
         )

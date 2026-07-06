@@ -1,66 +1,111 @@
 # Docker And E2E Notes
 
-Backend 3 owns Docker, Compose, Nginx, scripts, and E2E verification.
+This stack runs the local Brand Agent Studio environment used by backend, frontend,
+and acceptance testing.
 
-## Current Baseline
+## Services
 
-On the current `main` baseline, Dockerfiles still live under app folders:
+`compose.yaml` starts:
 
-- `apps/api/Dockerfile`
-- `apps/web/Dockerfile`
+- `postgres`
+- `redis`
+- `minio`
+- `minio-init`
+- `api`
+- `worker`
+- `web`
+- `gateway`
 
-The M0 integration branch is expected to move Dockerfiles under `infra/docker/`.
-After M0 is merged, re-check these paths before changing Compose.
+`minio-init` creates the local bucket from `S3_BUCKET` before `api` and `worker`
+start.
 
-## Local Commands
-
-Check the environment:
+## First Run
 
 ```sh
+cp .env.example .env
 ./scripts/check-environment.sh
-```
-
-Start the stack:
-
-```sh
 docker compose up --build -d
+./scripts/verify-stack.sh
 ```
 
-Verify the stack:
+Open the app through the gateway:
+
+```text
+http://127.0.0.1:8080
+```
+
+If `.env` changes the ports, use these external port variables:
+
+- `GATEWAY_PORT` for the gateway
+- `WEB_PORT` for the Next.js dev server
+- `API_EXPOSE_PORT` for the FastAPI server exposed on the host
+- `MINIO_API_PORT` and `MINIO_CONSOLE_PORT` for MinIO
+
+`API_PORT` is the API port inside the container and normally stays `8000`.
+
+## Verify
 
 ```sh
 ./scripts/verify-stack.sh
 ```
 
-Run E2E smoke:
+The verification script checks Docker, Compose, service process state, and these
+HTTP endpoints:
+
+- Gateway: `/health`
+- Web: `/api/health`
+- API: `/api/v1/health/ready`
+- API docs: `/api/docs`
+- MinIO: `/minio/health/live`
+- MinIO console
+
+The API ready check reports database, Redis, and object storage dependency
+status.
+
+## E2E Smoke
 
 ```sh
 ./scripts/run-e2e.sh
 ```
 
-Stop the stack:
+The script builds and starts Compose, runs `./scripts/verify-stack.sh`, runs the
+E2E smoke tests with `BRAND_STUDIO_RUN_E2E=1`, then stops the stack.
+
+Keep the stack running after E2E:
+
+```sh
+KEEP_STACK=1 ./scripts/run-e2e.sh
+```
+
+Run only the pytest E2E checks against an already running stack:
+
+```sh
+BRAND_STUDIO_RUN_E2E=1 UV_CACHE_DIR=/private/tmp/aline-uv-cache uv run pytest tests/e2e
+```
+
+## Proposal Downloads
+
+After a project reaches `COMPLETED`, these files are available:
+
+```text
+GET /api/v1/projects/{project_id}/exports/proposal.md
+GET /api/v1/projects/{project_id}/exports/proposal.zip
+```
+
+`proposal.zip` contains:
+
+- `proposal.md`
+- `proposal-manifest.json`
+
+For a no-database demo contract, use:
+
+```text
+GET /api/v1/dev/demo-proposal.md
+GET /api/v1/dev/demo-proposal.zip
+```
+
+## Stop
 
 ```sh
 docker compose stop
 ```
-
-## E2E Behavior
-
-E2E tests are skipped by default. They run only when:
-
-```sh
-BRAND_STUDIO_RUN_E2E=1 .venv/bin/python -m pytest tests/e2e
-```
-
-Prefer `./scripts/run-e2e.sh` because it starts, verifies, tests, and stops the stack.
-
-## M0 Merge Reminder
-
-Do not make broad Compose or Docker path changes until M0 is merged.
-
-After M0:
-
-1. Pull latest `main`.
-2. Rebase Backend 3 branch.
-3. Check Dockerfile paths in `compose.yaml`.
-4. Rerun `./scripts/run-e2e.sh`.

@@ -39,6 +39,22 @@ def test_create_download_url_returns_short_lived_get_url() -> None:
     assert query["response-content-type"] == ["image/png"]
 
 
+def test_from_settings_uses_api_settings_s3_field_names() -> None:
+    class Settings:
+        s3_endpoint_url = "http://minio.test"
+        s3_access_key_id = "local-key"
+        s3_secret_access_key = "local-secret"
+        s3_region = "us-east-1"
+
+    storage = S3ArtifactStorage.from_settings(Settings(), default_ttl_seconds=300)
+
+    result = storage.create_download_url(_artifact_reference(), expires_in_seconds=300)
+    credential = parse_qs(urlparse(result.url).query)["X-Amz-Credential"][0]
+
+    assert credential.startswith("local-key/")
+    assert result.expires_in_seconds == 300
+
+
 def test_put_artifact_uploads_body_and_returns_storage_result() -> None:
     reference = _artifact_reference()
     client = _s3_client()

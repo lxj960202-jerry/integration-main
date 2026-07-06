@@ -4,6 +4,7 @@ from zipfile import ZipFile
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
+from apps.api.app.routers import health as health_router
 
 
 def test_live_health() -> None:
@@ -11,6 +12,56 @@ def test_live_health() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_ready_health_reports_dependencies(monkeypatch) -> None:
+    async def fake_check_dependencies(_settings):
+        return {
+            "database": "ok",
+            "redis": "ok",
+            "object_storage": "ok",
+        }
+
+    monkeypatch.setattr(health_router, "check_dependencies", fake_check_dependencies)
+
+    response = TestClient(app).get("/api/v1/health/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "dependencies": {
+            "database": "ok",
+            "redis": "ok",
+            "object_storage": "ok",
+        },
+    }
+
+
+def test_ready_health_reports_unavailable_dependencies(monkeypatch) -> None:
+    async def fake_check_dependencies(_settings):
+        raise health_router.DependencyUnavailable(
+            {
+                "database": "ok",
+                "redis": "unavailable",
+                "object_storage": "ok",
+            }
+        )
+
+    monkeypatch.setattr(health_router, "check_dependencies", fake_check_dependencies)
+
+    response = TestClient(app).get("/api/v1/health/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": {
+            "status": "unavailable",
+            "dependencies": {
+                "database": "ok",
+                "redis": "unavailable",
+                "object_storage": "ok",
+            },
+        }
+    }
 
 
 def test_development_environment_uses_fake_models() -> None:

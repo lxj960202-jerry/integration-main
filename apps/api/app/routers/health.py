@@ -1,10 +1,9 @@
 from typing import Any
 
-import asyncpg
-from fastapi import APIRouter
-from redis.asyncio import Redis
+from fastapi import APIRouter, HTTPException
 
 from apps.api.app.config import get_settings
+from apps.api.app.health import DependencyUnavailable, check_dependencies
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -16,21 +15,15 @@ async def live() -> dict[str, str]:
 
 @router.get("/ready")
 async def ready() -> dict[str, Any]:
-    settings = get_settings()
-    checks: dict[str, str] = {}
-
-    connection = await asyncpg.connect(settings.database_url)
     try:
-        await connection.fetchval("SELECT 1")
-        checks["postgres"] = "ok"
-    finally:
-        await connection.close()
+        dependencies = await check_dependencies(get_settings())
+    except DependencyUnavailable as error:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "unavailable",
+                "dependencies": error.dependencies,
+            },
+        ) from error
 
-    redis = Redis.from_url(settings.redis_url)
-    try:
-        await redis.ping()
-        checks["redis"] = "ok"
-    finally:
-        await redis.aclose()
-
-    return {"status": "ok", "checks": checks}
+    return {"status": "ok", "dependencies": dependencies}
