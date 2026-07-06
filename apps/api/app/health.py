@@ -1,12 +1,12 @@
 import asyncio
 from typing import Any
 
+import asyncpg
 import boto3
-from app.settings import Settings
 from botocore.config import Config
 from redis.asyncio import Redis
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+
+from apps.api.app.config import Settings
 
 
 async def check_dependencies(settings: Settings) -> dict[str, str]:
@@ -39,12 +39,11 @@ class DependencyUnavailable(RuntimeError):
 
 
 async def _check_database(settings: Settings) -> None:
-    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    connection = await asyncpg.connect(settings.database_url)
     try:
-        async with engine.connect() as connection:
-            await connection.execute(text("SELECT 1"))
+        await connection.fetchval("SELECT 1")
     finally:
-        await engine.dispose()
+        await connection.close()
 
 
 async def _check_redis(settings: Settings) -> None:
@@ -60,8 +59,8 @@ async def _check_object_storage(settings: Settings) -> None:
         client = boto3.client(
             "s3",
             endpoint_url=settings.s3_endpoint_url,
-            aws_access_key_id=settings.s3_access_key,
-            aws_secret_access_key=settings.s3_secret_key,
+            aws_access_key_id=settings.s3_access_key_id,
+            aws_secret_access_key=settings.s3_secret_access_key,
             region_name=settings.s3_region,
             config=Config(signature_version="s3v4"),
         )

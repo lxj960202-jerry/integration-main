@@ -40,9 +40,9 @@ def test_compose_services_are_running_and_healthy() -> None:
         ("web", lambda: f"http://127.0.0.1:{_config_value('WEB_PORT', '3000')}/api/health"),
         (
             "api ready",
-            lambda: f"http://127.0.0.1:{_config_value('API_PORT', '8000')}/api/v1/health/ready",
+            lambda: f"http://127.0.0.1:{_api_exposed_port()}/api/v1/health/ready",
         ),
-        ("api docs", lambda: f"http://127.0.0.1:{_config_value('API_PORT', '8000')}/api/docs"),
+        ("api docs", lambda: f"http://127.0.0.1:{_api_exposed_port()}/api/docs"),
         (
             "minio live",
             lambda: f"http://127.0.0.1:{_config_value('MINIO_API_PORT', '9000')}/minio/health/live",
@@ -56,7 +56,7 @@ def test_stack_endpoint_responds(name: str, url) -> None:
 
 
 def test_api_ready_reports_dependencies_ok() -> None:
-    url = f"http://127.0.0.1:{_config_value('API_PORT', '8000')}/api/v1/health/ready"
+    url = f"http://127.0.0.1:{_api_exposed_port()}/api/v1/health/ready"
     response = _get(url)
     payload = json.loads(response["body"].decode("utf-8"))
 
@@ -164,3 +164,7 @@ def _config_value(name: str, default: str) -> str:
         if key == name:
             return value.strip().strip('"').strip("'")
     return default
+
+
+def _api_exposed_port() -> str:
+    return _config_value("API_EXPOSE_PORT", _config_value("API_PORT", "8000"))

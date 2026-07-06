@@ -7,6 +7,7 @@ import { DirectionsResult } from "@/features/directions/directions-result";
 import type { DirectionOutput } from "@/features/directions/types";
 import { LogoResult } from "@/features/logo/logo-result";
 import type { LogoOutput } from "@/features/logo/types";
+import { formatVersionBadge } from "@/features/workbench/stage-copy";
 
 import { StageOutputPanel } from "./stage-output-panel";
 import type {
@@ -33,6 +34,7 @@ type DirectionsLogoWorkbenchProps = {
   confirmableOutputs?: ConfirmableStageOutput[];
   ipChoicePending?: boolean;
   isSubmittingDecision?: boolean;
+  projectId?: string | null;
   stages: WorkbenchStageSummary[];
   onConfirm: (confirmation: VersionConfirmation) => void;
   onControlStage: (selection: StageControlSelection) => void;
@@ -48,6 +50,7 @@ export function DirectionsLogoWorkbench({
   logo,
   onConfirm,
   onControlStage,
+  projectId,
   stages,
   onSelect,
 }: DirectionsLogoWorkbenchProps) {
@@ -73,7 +76,7 @@ export function DirectionsLogoWorkbench({
 
       <div className={styles.content}>
         <section className={styles.panel}>
-          <PanelHeader title="Directions" versionId={directions?.version_id} />
+          <PanelHeader title="品牌方向" versionId={directions?.version_id} />
           {directions ? (
             <DirectionsResult
               isLocked={Boolean(selectedDirectionId) || isSubmittingDecision}
@@ -83,12 +86,12 @@ export function DirectionsLogoWorkbench({
               versionId={directions.version_id}
             />
           ) : (
-            <div className={styles.empty}>暂无 Directions 结果</div>
+            <div className={styles.empty}>方向生成完成后会显示在这里。</div>
           )}
         </section>
 
         <section className={styles.panel}>
-          <PanelHeader title="Logo" versionId={logo?.version_id} />
+          <PanelHeader title="Logo 方案" versionId={logo?.version_id} />
           {logo ? (
             <LogoResult
               assetUrls={assetUrls}
@@ -99,26 +102,28 @@ export function DirectionsLogoWorkbench({
               versionId={logo.version_id}
             />
           ) : (
-            <div className={styles.empty}>暂无 Logo 结果</div>
+            <div className={styles.empty}>选择品牌方向后，Logo 方案会显示在这里。</div>
           )}
         </section>
 
         {confirmableOutputs.map((item) => (
           <StageOutputPanel
+            assetUrls={assetUrls}
             isSubmitting={isSubmittingDecision}
             item={item}
             key={`${item.stage}-${item.version_id}`}
             onConfirm={onConfirm}
+            projectId={projectId}
           />
         ))}
 
         {ipChoicePending ? (
           <section className={styles.panel}>
-            <PanelHeader title="IP Choice" />
+            <PanelHeader title="品牌 IP" />
             <div className={styles.choicePanel}>
               <div>
-                <h3>品牌 IP</h3>
-                <p>可以生成一个品牌角色，也可以跳过并继续物料阶段。</p>
+                <h3>这一步由你决定要不要做品牌角色</h3>
+                <p>需要吉祥物或虚拟形象就生成 IP；暂时只做视觉和物料，可以直接跳过。</p>
               </div>
               <div className={styles.choiceActions}>
                 <button
@@ -133,7 +138,7 @@ export function DirectionsLogoWorkbench({
                   }
                   type="button"
                 >
-                  跳过 IP
+                  {isSubmittingDecision ? "处理中" : "跳过 IP"}
                 </button>
                 <button
                   className={styles.primaryButton}
@@ -147,7 +152,7 @@ export function DirectionsLogoWorkbench({
                   }
                   type="button"
                 >
-                  生成 IP
+                  {isSubmittingDecision ? "生成中" : "生成 IP"}
                 </button>
               </div>
             </div>
@@ -162,7 +167,7 @@ function PanelHeader({ title, versionId }: { title: string; versionId?: string }
   return (
     <div className={styles.header}>
       <h2>{title}</h2>
-      <span>{versionId ?? "N/A"}</span>
+      <span title={versionId}>{formatVersionBadge(versionId)}</span>
     </div>
   );
 }

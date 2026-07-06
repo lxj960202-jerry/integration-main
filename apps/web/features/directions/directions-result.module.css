@@ -101,6 +101,21 @@
   font-weight: 800;
 }
 
+.empty,
+.emptyInline {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.empty {
+  min-height: 72px;
+  padding: 16px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
 .color {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
@@ -109,6 +124,7 @@
   min-width: 120px;
   color: #334155;
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .swatch {
@@ -121,6 +137,18 @@
 .meta {
   display: grid;
   gap: 8px;
+}
+
+.risks {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .metaBlock {

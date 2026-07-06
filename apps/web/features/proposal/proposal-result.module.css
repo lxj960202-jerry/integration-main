@@ -1,0 +1,175 @@
+.stack,
+.summary,
+.card,
+.textRow {
+  display: grid;
+}
+
+.stack {
+  gap: 12px;
+}
+
+.summary,
+.downloads,
+.card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.summary {
+  gap: 8px;
+}
+
+.summary h3,
+.card h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.summary p,
+.card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.downloads {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.downloads span,
+.textRow span,
+.empty,
+.emptyInline {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.downloads strong {
+  display: block;
+  margin-top: 4px;
+  color: #172033;
+  font-size: 14px;
+}
+
+.downloadActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.downloadButton,
+.disabledButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.downloadButton {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.disabledButton {
+  border: 1px solid #cbd5e1;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  gap: 10px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardHeader span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2154d1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.textRow {
+  gap: 3px;
+}
+
+.textRow strong {
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chips span {
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  overflow-wrap: anywhere;
+  background: #eef4ff;
+  color: #2154d1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.empty {
+  min-height: 58px;
+  padding: 14px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .downloads {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .downloadActions {
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
