@@ -9,6 +9,17 @@
   gap: 12px;
 }
 
+.empty {
+  min-height: 72px;
+  padding: 16px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .card {
   display: grid;
   grid-template-rows: auto 1fr auto;

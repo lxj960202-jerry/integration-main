@@ -1,0 +1,130 @@
+.stack,
+.card,
+.textRow {
+  display: grid;
+}
+
+.stack {
+  gap: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.card h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.palette,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.color {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.color strong,
+.color small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.color small,
+.textRow span,
+.empty,
+.emptyInline {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgb(15 23 42 / 16%);
+  border-radius: 999px;
+}
+
+.chips span {
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  overflow-wrap: anywhere;
+  background: #eef4ff;
+  color: #2154d1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.list,
+.dangerList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.dangerList {
+  color: #9f1239;
+}
+
+.textRow {
+  gap: 3px;
+}
+
+.textRow strong {
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.empty {
+  min-height: 58px;
+  padding: 14px;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

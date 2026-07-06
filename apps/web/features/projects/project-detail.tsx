@@ -80,65 +80,36 @@ function isIntakeResult(result: StageRunDetailResponse["result"]): result is Int
   );
 }
 
-function isRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+function hasStageOutput(output: Record<string, JsonValue> | undefined) {
+  return Boolean(output && typeof output === "object" && !Array.isArray(output));
 }
 
 function isDirectionOutput(output: Record<string, JsonValue> | undefined): output is DirectionOutput {
-  return Boolean(
-    output &&
-      Array.isArray(output.directions) &&
-      output.directions.length > 0 &&
-      isRecord(output.brief),
-  );
+  return hasStageOutput(output);
 }
 
 function isLogoOutput(output: Record<string, JsonValue> | undefined): output is LogoOutput {
-  return Boolean(output && Array.isArray(output.concepts) && output.concepts.length > 0);
+  return hasStageOutput(output);
 }
 
 function isVIOutput(output: Record<string, JsonValue> | undefined): output is VIOutput {
-  return Boolean(
-    output &&
-      Array.isArray(output.palette) &&
-      isRecord(output.typography) &&
-      isRecord(output.logo_rules) &&
-      Array.isArray(output.layouts) &&
-      typeof output.source_logo_asset_id === "string",
-  );
+  return hasStageOutput(output);
 }
 
 function isIPOutput(output: Record<string, JsonValue> | undefined): output is IPOutput {
-  return Boolean(
-    output &&
-      isRecord(output.character) &&
-      isRecord(output.pose) &&
-      typeof output.image_prompt === "string" &&
-      typeof output.preview_asset_id === "string",
-  );
+  return hasStageOutput(output);
 }
 
 function isMaterialOutput(output: Record<string, JsonValue> | undefined): output is MaterialOutput {
-  return Boolean(output && Array.isArray(output.scenes) && output.scenes.length > 0);
+  return hasStageOutput(output);
 }
 
 function isReviewOutput(output: Record<string, JsonValue> | undefined): output is ReviewOutput {
-  return Boolean(
-    output &&
-      typeof output.summary === "string" &&
-      Array.isArray(output.issues) &&
-      (typeof output.pass === "boolean" || typeof output.passed === "boolean"),
-  );
+  return hasStageOutput(output);
 }
 
 function isProposalOutput(output: Record<string, JsonValue> | undefined): output is ProposalOutput {
-  return Boolean(
-    output &&
-      typeof output.title === "string" &&
-      typeof output.narrative === "string" &&
-      Array.isArray(output.sections) &&
-      Array.isArray(output.asset_refs),
-  );
+  return hasStageOutput(output);
 }
 
 function latestDecisionFor(
@@ -542,6 +513,7 @@ export function ProjectDetail({
             onConfirm={onConfirmStage}
             onControlStage={onControlStage}
             onSelect={onSelectVersionItem}
+            projectId={project.id}
             stages={workbench.stages}
           />
         </section>
