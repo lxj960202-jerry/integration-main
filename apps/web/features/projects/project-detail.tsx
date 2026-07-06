@@ -415,7 +415,7 @@ function ActiveRunPanel({
       <div className="success-panel">
         <span className="step-pill">Intake 完成</span>
         <h2>品牌信息已满足生成条件</h2>
-        <p>当前 Intake Run 已成功完成，可以继续生成品牌方向。</p>
+        <p>当前 Intake Run 已成功完成，下一步会进入 Directions 品牌方向生成。</p>
         <div className="inline-actions">
           <Button
             disabled={isSubmittingAnswers}
@@ -423,7 +423,7 @@ function ActiveRunPanel({
               void onSubmitIntakeAnswers(activeRun.id, []);
             }}
           >
-            {isSubmittingAnswers ? "正在继续" : "继续生成方向"}
+            {isSubmittingAnswers ? "正在进入 Directions" : "进入 Directions"}
           </Button>
         </div>
       </div>
@@ -514,7 +514,7 @@ export function ProjectDetail({
             {BRAND_SPEC_FIELDS.map((field) => (
               <div key={field.key}>
                 <dt>{field.label}</dt>
-                <dd>{formatJsonValue(project.brand_spec[field.key])}</dd>
+                <dd>{formatJsonValue(project.brand_spec?.[field.key])}</dd>
               </div>
             ))}
           </dl>

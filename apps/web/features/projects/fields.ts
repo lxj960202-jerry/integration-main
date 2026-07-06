@@ -1,6 +1,7 @@
 import type { StructuredFields } from "@/lib/api/types";
 
 export type BrandSpecField = {
+  hint?: string;
   key: keyof StructuredFields;
   label: string;
   placeholder: string;
@@ -23,7 +24,8 @@ export const BRAND_SPEC_FIELDS: BrandSpecField[] = [
   {
     key: "target_audiences",
     label: "目标用户",
-    placeholder: "每行一个，例如：年轻城市消费者",
+    hint: "多个内容用逗号分隔。",
+    placeholder: "例如：年轻城市消费者，城市白领",
     type: "list",
   },
   {
@@ -35,25 +37,29 @@ export const BRAND_SPEC_FIELDS: BrandSpecField[] = [
   {
     key: "brand_personality",
     label: "品牌人格",
-    placeholder: "每行一个，例如：清爽、可信、亲切",
+    hint: "多个内容用逗号分隔。",
+    placeholder: "例如：清爽，可信，亲切",
     type: "list",
   },
   {
     key: "style_keywords",
     label: "风格关键词",
-    placeholder: "每行一个，例如：当代、东方、清爽",
+    hint: "多个内容用逗号分隔。",
+    placeholder: "例如：当代，东方，清爽",
     type: "list",
   },
   {
     key: "required_elements",
     label: "必须出现的元素",
-    placeholder: "每行一个，例如：茶叶、山水线条",
+    hint: "多个内容用逗号分隔。",
+    placeholder: "例如：茶叶，山水线条",
     type: "list",
   },
   {
     key: "prohibited_elements",
     label: "禁止出现的元素",
-    placeholder: "每行一个，例如：卡通熊、复杂渐变",
+    hint: "多个内容用逗号分隔。",
+    placeholder: "例如：低幼卡通，复杂渐变",
     type: "list",
   },
   {
@@ -71,7 +77,8 @@ export const BRAND_SPEC_FIELDS: BrandSpecField[] = [
   {
     key: "language",
     label: "语言",
-    placeholder: "例如：zh-CN",
+    hint: "默认使用 zh-CN。",
+    placeholder: "zh-CN",
     type: "text",
   },
 ];
