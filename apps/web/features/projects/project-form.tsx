@@ -2,17 +2,24 @@
 
 import { FormEvent, useState } from "react";
 
-import { Button, Field, TextArea, TextInput } from "@/components/ui";
+import { Button, Field, SelectInput, TextArea, TextInput } from "@/components/ui";
 import type { ProjectCreateRequest, StructuredFields } from "@/lib/api/types";
 
 import { BRAND_SPEC_FIELDS, splitListField } from "./fields";
 
 type ProjectFormProps = {
   isSubmitting: boolean;
-  onSubmit: (payload: ProjectCreateRequest) => Promise<void>;
+  onSubmit: (payload: ProjectCreateRequest) => Promise<boolean>;
+  submitError?: string | null;
 };
 
 type FormState = Record<string, string>;
+
+const DEFAULT_LANGUAGE = "zh-CN";
+const LANGUAGE_OPTIONS = [
+  { label: "zh-CN", value: "zh-CN" },
+  { label: "en-US", value: "en-US" },
+];
 
 const initialState: FormState = {
   name: "",
@@ -27,10 +34,10 @@ const initialState: FormState = {
   prohibited_elements: "",
   competitor_notes: "",
   slogan: "",
-  language: "",
+  language: DEFAULT_LANGUAGE,
 };
 
-export function ProjectForm({ isSubmitting, onSubmit }: ProjectFormProps) {
+export function ProjectForm({ isSubmitting, onSubmit, submitError }: ProjectFormProps) {
   const [form, setForm] = useState<FormState>(initialState);
 
   function updateField(key: string, value: string) {
@@ -42,7 +49,10 @@ export function ProjectForm({ isSubmitting, onSubmit }: ProjectFormProps) {
 
     const structuredFields: Record<string, string | string[]> = {};
     for (const field of BRAND_SPEC_FIELDS) {
-      const value = form[field.key]?.trim() ?? "";
+      const value =
+        field.key === "language"
+          ? form[field.key]?.trim() || DEFAULT_LANGUAGE
+          : form[field.key]?.trim() ?? "";
       if (!value) {
         continue;
       }
@@ -50,14 +60,16 @@ export function ProjectForm({ isSubmitting, onSubmit }: ProjectFormProps) {
         field.type === "list" ? splitListField(value) : value;
     }
 
-    await onSubmit({
+    const didCreate = await onSubmit({
       name: form.name.trim(),
       requirement_text: form.requirement_text.trim() || null,
       structured_fields: structuredFields as StructuredFields,
       reference_artifact_ids: [],
     });
 
-    setForm(initialState);
+    if (didCreate) {
+      setForm(initialState);
+    }
   }
 
   return (
@@ -85,11 +97,22 @@ export function ProjectForm({ isSubmitting, onSubmit }: ProjectFormProps) {
       <div className="form-grid">
         {BRAND_SPEC_FIELDS.map((field) => (
           <Field
-            hint={field.type === "list" ? "列表字段，一行写一个。" : undefined}
+            hint={field.hint ?? (field.type === "list" ? "多个内容用逗号分隔。" : undefined)}
             key={field.key}
             label={field.label}
           >
-            {field.type === "list" ? (
+            {field.key === "language" ? (
+              <SelectInput
+                onChange={(event) => updateField(field.key, event.target.value)}
+                value={form[field.key] || DEFAULT_LANGUAGE}
+              >
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            ) : field.type === "list" ? (
               <TextArea
                 onChange={(event) => updateField(field.key, event.target.value)}
                 placeholder={field.placeholder}
@@ -106,6 +129,12 @@ export function ProjectForm({ isSubmitting, onSubmit }: ProjectFormProps) {
           </Field>
         ))}
       </div>
+
+      {submitError ? (
+        <p className="form-error" role="alert">
+          {submitError}
+        </p>
+      ) : null}
 
       <footer className="form-actions">
         <Button disabled={isSubmitting || !form.name.trim()} type="submit">

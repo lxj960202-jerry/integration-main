@@ -53,7 +53,7 @@ function pickLatestRun(runs: StageRunResponse[]) {
 }
 
 function toRunDetail(
-  run: StageRunResponse | ResumeStageRunResponse | StageRunStateResponse,
+  run: StageRunResponse | ResumeStageRunResponse | StageRunStateResponse | StageRunDetailResponse,
 ): StageRunDetailResponse {
   return {
     id: run.id,
@@ -62,9 +62,9 @@ function toRunDetail(
     status: run.status,
     attempt: "attempt" in run ? run.attempt : 0,
     error_code: "error_code" in run ? run.error_code : null,
-    error_message: null,
+    error_message: "error_message" in run ? run.error_message : null,
     result_version_id: "result_version_id" in run ? run.result_version_id : null,
-    result: null,
+    result: "result" in run ? run.result : null,
   };
 }
 
@@ -85,6 +85,7 @@ type ProjectWorkspaceProps = {
 export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
   const router = useRouter();
   const [activeRun, setActiveRun] = useState<StageRunDetailResponse | null>(null);
+  const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -225,18 +226,28 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
 
   async function handleCreateProject(payload: ProjectCreateRequest) {
     setIsSubmittingProject(true);
+    setCreateErrorMessage(null);
     setErrorMessage(null);
     try {
       const created = await apiClient.createProject(payload);
+      const runDetail = await apiClient
+        .getStageRun(created.stage_run.id)
+        .catch(() => toRunDetail(created.stage_run));
       setProjects((current) => sortProjects([created.project, ...current]));
       setSelectedProjectId(created.project.id);
-      setActiveRun(toRunDetail(created.stage_run));
+      setActiveRun(runDetail);
       setProjectState(null);
       setPollingRunId(created.stage_run.id);
       setIsCreateOpen(false);
       router.push(`/projects/${created.project.id}`);
+      void loadProjectDetail(created.project.id);
+      void loadProjects();
+      return true;
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      setCreateErrorMessage(message);
+      setErrorMessage(message);
+      return false;
     } finally {
       setIsSubmittingProject(false);
     }
@@ -247,8 +258,13 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
     setErrorMessage(null);
     try {
       const resumedRun = await apiClient.submitIntakeAnswers(intakeRunId, { answers });
-      setActiveRun(toRunDetail(resumedRun));
+      const runDetail = await apiClient
+        .getStageRun(resumedRun.id)
+        .catch(() => toRunDetail(resumedRun));
+      setActiveRun(runDetail);
       setPollingRunId(resumedRun.id);
+      void loadProjectDetail(resumedRun.project_id);
+      void loadProjects();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -360,6 +376,7 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
   }
 
   function handleRefresh() {
+    setErrorMessage(null);
     void loadProjects();
     if (selectedProjectId) {
       void loadProjectDetail(selectedProjectId);
@@ -376,7 +393,14 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
         </header>
 
         <div className="sidebar-actions">
-          <Button onClick={() => setIsCreateOpen(true)}>新建项目</Button>
+          <Button
+            onClick={() => {
+              setCreateErrorMessage(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            新建项目
+          </Button>
           <Button onClick={handleRefresh} variant="secondary">
             刷新
           </Button>
@@ -423,7 +447,11 @@ export function ProjectWorkspace({ initialProjectId }: ProjectWorkspaceProps) {
       </section>
 
       <Dialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="新建项目">
-        <ProjectForm isSubmitting={isSubmittingProject} onSubmit={handleCreateProject} />
+        <ProjectForm
+          isSubmitting={isSubmittingProject}
+          onSubmit={handleCreateProject}
+          submitError={createErrorMessage}
+        />
       </Dialog>
     </main>
   );
