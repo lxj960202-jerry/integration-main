@@ -33,6 +33,7 @@ type DirectionsLogoWorkbenchProps = {
   confirmableOutputs?: ConfirmableStageOutput[];
   ipChoicePending?: boolean;
   isSubmittingDecision?: boolean;
+  projectId?: string | null;
   stages: WorkbenchStageSummary[];
   onConfirm: (confirmation: VersionConfirmation) => void;
   onControlStage: (selection: StageControlSelection) => void;
@@ -48,6 +49,7 @@ export function DirectionsLogoWorkbench({
   logo,
   onConfirm,
   onControlStage,
+  projectId,
   stages,
   onSelect,
 }: DirectionsLogoWorkbenchProps) {
@@ -105,10 +107,12 @@ export function DirectionsLogoWorkbench({
 
         {confirmableOutputs.map((item) => (
           <StageOutputPanel
+            assetUrls={assetUrls}
             isSubmitting={isSubmittingDecision}
             item={item}
             key={`${item.stage}-${item.version_id}`}
             onConfirm={onConfirm}
+            projectId={projectId}
           />
         ))}
 
@@ -133,7 +137,7 @@ export function DirectionsLogoWorkbench({
                   }
                   type="button"
                 >
-                  跳过 IP
+                  {isSubmittingDecision ? "处理中" : "跳过 IP"}
                 </button>
                 <button
                   className={styles.primaryButton}
@@ -147,7 +151,7 @@ export function DirectionsLogoWorkbench({
                   }
                   type="button"
                 >
-                  生成 IP
+                  {isSubmittingDecision ? "生成中" : "生成 IP"}
                 </button>
               </div>
             </div>

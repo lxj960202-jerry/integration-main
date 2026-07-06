@@ -1,17 +1,17 @@
 export type LogoConcept = {
-  id: string;
-  name: string;
-  rationale: string;
-  symbolism: string;
-  shape_language: string;
-  color_strategy: string;
-  image_prompt: string;
-  preview_asset_id: string;
+  id?: string;
+  name?: string;
+  rationale?: string;
+  symbolism?: string;
+  shape_language?: string;
+  color_strategy?: string;
+  image_prompt?: string;
+  preview_asset_id?: string;
 };
 
 export type LogoOutput = {
-  schema_version: number;
-  concepts: LogoConcept[];
+  schema_version?: number;
+  concepts?: LogoConcept[];
 };
 
 export type LogoSelectionRequest = {
