@@ -182,7 +182,7 @@ export function IntakeQuestions({
 
         <footer className="form-actions">
           <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? "提交中…" : "提交答案并生成 Directions"}
+            {isSubmitting ? "提交中..." : "提交答案并生成品牌方向"}
           </Button>
         </footer>
       </form>

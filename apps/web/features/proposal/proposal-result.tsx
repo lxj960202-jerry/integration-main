@@ -38,7 +38,7 @@ export function ProposalResult({
       <div className={styles.downloads}>
         <div>
           <span>交付下载</span>
-          <strong>{canDownload ? "已可下载" : "确认 Proposal 后可下载"}</strong>
+          <strong>{canDownload ? "已可下载" : "完成最终提案后可下载"}</strong>
         </div>
         <div className={styles.downloadActions}>
           {canDownload ? (

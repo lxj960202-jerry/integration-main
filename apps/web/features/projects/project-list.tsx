@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/ui";
+import { formatStageLabel } from "@/features/workbench/stage-copy";
 import type { ProjectResponse } from "@/lib/api/types";
 
 type ProjectListProps = {
@@ -51,7 +52,7 @@ export function ProjectList({ onSelect, projects, selectedProjectId }: ProjectLi
               <small>{formatDate(project.updated_at)}</small>
             </span>
             <span className="project-list-badges">
-              <em>{project.current_stage}</em>
+              <em>{formatStageLabel(project.current_stage)}</em>
               <small className="project-status">{formatStatus(project.status)}</small>
             </span>
           </button>

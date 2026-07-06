@@ -254,6 +254,57 @@ button:disabled {
   margin-bottom: 22px;
 }
 
+.user-action {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid #c8d1de;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.user-action span {
+  color: #5f6f89;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.user-action h2,
+.user-action p {
+  margin: 0;
+}
+
+.user-action h2 {
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.user-action p {
+  color: #526174;
+  line-height: 1.6;
+}
+
+.user-action--active {
+  border-color: #9eb7ef;
+  background: #f3f7ff;
+}
+
+.user-action--waiting {
+  border-color: #f2c76f;
+  background: #fff9eb;
+}
+
+.user-action--success {
+  border-color: #bcdcc8;
+  background: #f4fbf6;
+}
+
+.user-action--danger {
+  border-color: #f0b8c2;
+  background: #fff7f8;
+}
+
 .step-pill {
   width: fit-content;
   padding: 5px 8px;

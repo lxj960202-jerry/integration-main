@@ -1,21 +1,16 @@
 import type { WorkbenchStage, WorkbenchStageSummary } from "@/features/workbench/types";
+import {
+  formatStageLabel,
+  formatStageStep,
+  formatVersionBadge,
+} from "@/features/workbench/stage-copy";
 
 import styles from "./stage-navigation.module.css";
-
-const stageLabels: Record<WorkbenchStage, string> = {
-  DIRECTIONS: "Directions",
-  LOGO: "Logo",
-  VI: "VI",
-  IP: "IP",
-  MATERIALS: "Materials",
-  REVIEW: "Review",
-  PROPOSAL: "Proposal",
-};
 
 const statusLabels: Record<WorkbenchStageSummary["status"], string> = {
   LOCKED: "未解锁",
   GENERATING: "生成中",
-  AWAITING_DECISION: "待选择",
+  AWAITING_DECISION: "待你处理",
   CONFIRMED: "已确认",
   STALE: "需更新",
 };
@@ -42,9 +37,9 @@ export function StageNavigation({ stages }: StageNavigationProps) {
         >
           <span className={styles.dot} />
           <span className={styles.body}>
-            <strong className={styles.name}>{stageLabels[stage.stage]}</strong>
+            <strong className={styles.name}>{formatStageLabel(stage.stage)}</strong>
             <span className={styles.meta}>
-              {stage.version_id ? `version ${stage.version_id}` : "N/A"}
+              {formatStageStep(stage.stage)} · {formatVersionBadge(stage.version_id)}
             </span>
           </span>
           <span className={styles.badge}>{statusLabels[stage.status]}</span>
